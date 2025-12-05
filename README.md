@@ -1,8 +1,12 @@
 # hotel
 吉林大学2023级5班HTLML移动应用开发11组
 
+**手机上浏览酒店管理系统
+
+*步骤1：打开hotel文件
+'ipconfig getifaddr en0'
 ```bash
-步骤1：打开hotel文件  cd ~/Downloads/hotel
+  cd ~/Downloads/hotel
 步骤2：查询网络ip地址：ipconfig getifaddr en0
 步骤3：创建服务器：php -S ip:8000
 步骤4：手机浏览器输入：http://ip:8000
