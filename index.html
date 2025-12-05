@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>悦享酒店客房管理系统</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#2563eb', // 主蓝
+            secondary: '#f59e0b', // 辅助橙
+            dark: '#1e293b',      // 深色
+            light: '#f8fafc',     // 浅色
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+        },
+      }
+    }
+  </script>
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .content-auto { content-visibility: auto; }
+      .card-shadow { box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); }
+      .modal-overlay { background-color: rgba(0,0,0,0.5); }
+      .date-selected { border: 2px solid #2563eb; background-color: #eff6ff; }
+      .tab-button.border-primary { border-color: #2563eb; color: #2563eb; }
+    }
+  </style>
+</head>
+<body class="bg-gray-50 font-sans">
+
+  <nav class="bg-primary text-white shadow-md">
+    <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+      <div class="flex items-center space-x-2">
+        <i class="fas fa-hotel text-2xl"></i>
+        <h1 class="text-xl font-bold">悦享酒店客房管理系统</h1>
+      </div>
+      <div class="hidden md:flex items-center space-x-6">
+        <div id="consumerNavLinks" class="flex items-center space-x-6">
+          <a href="#rooms" class="hover:text-secondary transition">客房浏览</a>
+          <a href="#booking" class="hover:text-secondary transition">预订流程</a>
+          <a href="#vip" class="hover:text-secondary transition">VIP服务</a>
+        </div>
+        <div class="relative">
+          <button id="userTypeBtn" class="flex items-center space-x-1 bg-secondary hover:bg-opacity-90 px-3 py-1 rounded-md transition">
+            <i class="fas fa-user"></i>
+            <span id="userTypeText">个人用户</span>
+            <i class="fas fa-chevron-down text-xs"></i>
+          </button>
+          <div id="userTypeDropdown" class="absolute right-0 mt-2 w-40 bg-white text-dark rounded-md shadow-lg hidden z-10">
+            <a href="#" class="block px-4 py-2 hover:bg-gray-100" data-type="personal">个人用户</a>
+            <a href="#" class="block px-4 py-2 hover:bg-gray-100" data-type="admin">管理员</a>
+          </div>
+        </div>
+        <div id="userInfo" class="hidden flex items-center space-x-2">
+          <div class="relative">
+            <img id="userAvatar" src="https://picsum.photos/32/32?random=1" alt="用户头像" class="w-8 h-8 rounded-full">
+            <span id="vipBadge" class="absolute -top-1 -right-1 bg-secondary text-white text-xs rounded-full w-4 h-4 flex items-center justify-center hidden">
+              <i class="fas fa-crown"></i>
+            </span>
+          </div>
+          <span id="userName" class="font-medium"></span>
+          <button id="logoutBtn" class="text-sm bg-red-500 hover:bg-red-600 px-2 py-1 rounded transition">退出</button>
+        </div>
+        <button id="loginBtn" class="bg-white text-primary hover:bg-gray-100 px-4 py-2 rounded-md transition">
+          <i class="fas fa-sign-in-alt mr-1"></i>登录/注册
+        </button>
+        <button id="myOrdersBtn" class="bg-white text-primary hover:bg-gray-100 px-4 py-2 rounded-md transition hidden">
+          <i class="fas fa-list-alt mr-1"></i>我的订单
+        </button>
+      </div>
+      <button id="mobileMenuBtn" class="md:hidden text-xl">
+        <i class="fas fa-bars"></i>
+      </button>
+    </div>
+    <div id="mobileMenu" class="md:hidden hidden bg-primary/95 backdrop-blur-sm">
+      <div class="container mx-auto px-4 py-2 flex flex-col space-y-3">
+        <div id="mobileConsumerNavLinks" class="flex flex-col space-y-3">
+          <a href="#rooms" class="hover:text-secondary py-2 transition">客房浏览</a>
+          <a href="#booking" class="hover:text-secondary py-2 transition">预订流程</a>
+          <a href="#vip" class="hover:text-secondary py-2 transition">VIP服务</a>
+        </div>
+        <div class="flex flex-col space-y-2 py-2">
+          <button id="mobileUserTypeBtn" class="flex items-center justify-between bg-secondary hover:bg-opacity-90 px-3 py-2 rounded-md transition">
+            <span>个人用户</span>
+            <i class="fas fa-chevron-down text-xs"></i>
+          </button>
+          <div id="mobileUserTypeDropdown" class="ml-4 bg-white text-dark rounded-md shadow-lg hidden">
+            <a href="#" class="block px-4 py-2 hover:bg-gray-100" data-type="personal">个人用户</a>
+            <a href="#" class="block px-4 py-2 hover:bg-gray-100" data-type="admin">管理员</a>
+          </div>
+        </div>
+        <div id="mobileUserInfo" class="hidden flex flex-col space-y-2 py-2">
+          <div class="flex items-center space-x-2">
+            <div class="relative">
+              <img id="mobileUserAvatar" src="https://picsum.photos/32/32?random=1" alt="用户头像" class="w-8 h-8 rounded-full">
+              <span id="mobileVipBadge" class="absolute -top-1 -right-1 bg-secondary text-white text-xs rounded-full w-4 h-4 flex items-center justify-center hidden">
+                <i class="fas fa-crown"></i>
+              </span>
+            </div>
+            <span id="mobileUserName" class="font-medium"></span>
+          </div>
+          <button id="mobileLogoutBtn" class="text-sm bg-red-500 hover:bg-red-600 px-2 py-1 rounded transition">退出</button>
+        </div>
+        <button id="mobileLoginBtn" class="bg-white text-primary hover:bg-gray-100 px-4 py-2 rounded-md transition">
+          <i class="fas fa-sign-in-alt mr-1"></i>登录/注册
+        </button>
+        <button id="mobileMyOrdersBtn" class="bg-white text-primary hover:bg-gray-100 px-4 py-2 rounded-md transition hidden">
+          <i class="fas fa-list-alt mr-1"></i>我的订单
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <div id="adminLoginModal" class="fixed inset-0 z-50 flex items-center justify-center hidden modal-overlay">
+    <div class="bg-white rounded-lg max-w-md w-full p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-xl font-bold">管理员登录</h3>
+        <button id="closeAdminLoginModal" class="text-gray-500 hover:text-gray-700">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+      <form id="adminLoginForm" class="space-y-4">
+        <div>
+          <label class="block text-gray-700 text-sm font-medium mb-1">管理员账号</label>
+          <input type="text" id="adminUsername" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary" required placeholder="默认：admin1">
+        </div>
+        <div>
+          <label class="block text-gray-700 text-sm font-medium mb-1">密码</label>
+          <input type="password" id="adminPassword" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary" required placeholder="默认：admin123">
+        </div>
+        <button type="submit" class="w-full bg-primary hover:bg-primary/90 text-white py-2 rounded-md transition">
+          管理员登录
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div id="loginModal" class="fixed inset-0 z-50 flex items-center justify-center hidden modal-overlay">
+    <div class="bg-white rounded-lg max-w-md w-full p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-xl font-bold">登录/注册</h3>
+        <button id="closeLoginModal" class="text-gray-500 hover:text-gray-700">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+      <div class="tabs flex mb-4">
+        <button id="loginTab" class="tab-button flex-1 py-2 font-medium border-b-2 border-primary text-primary">登录</button>
+        <button id="registerTab" class="tab-button flex-1 py-2 font-medium border-b-2 border-transparent text-gray-500">注册</button>
+      </div>
+      <form id="loginForm" class="space-y-4">
+        <div>
+          <label class="block text-gray-700 text-sm font-medium mb-1">用户名</label>
+          <input type="text" id="loginUsername" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary" required>
+        </div>
+        <div>
+          <label class="block text-gray-700 text-sm font-medium mb-1">密码</label>
+          <input type="password" id="loginPassword" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary" required>
+        </div>
+        <button type="submit" class="w-full bg-primary hover:bg-primary/90 text-white py-2 rounded-md transition">登录</button>
+      </form>
+      <form id="registerForm" class="space-y-4 hidden">
+        <div>
+          <label class="block text-gray-700 text-sm font-medium mb-1">用户名</label>
+          <input type="text" id="registerUsername" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary" required>
+        </div>
+        <div>
+          <label class="block text-gray-700 text-sm font-medium mb-1">密码</label>
+          <input type="password" id="registerPassword" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary" required>
+        </div>
+        <div>
+          <label class="block text-gray-700 text-sm font-medium mb-1">确认密码</label>
+          <input type="password" id="registerConfirmPassword" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary" required>
+        </div>
+        <div>
+          <label class="block text-gray-700 text-sm font-medium mb-1">VIP等级</label>
+          <select id="registerVipLevel" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+            <option value="none">非VIP</option>
+            <option value="vip1">VIP 1级</option>
+            <option value="vip2">VIP 2级</option>
+            <option value="vip3">VIP 3级</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-gray-700 text-sm font-medium mb-1">头像URL（可选）</label>
+          <input type="text" id="registerAvatar" class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary" placeholder="默认：随机头像" value="https://picsum.photos/32/32?random=2">
+        </div>
+        <button type="submit" class="w-full bg-primary hover:bg-primary/90 text-white py-2 rounded-md transition">注册</button>
+      </form>
+    </div>
+  </div>
+
+  <section id="heroSection" class="bg-gradient-to-r from-primary to-primary/80 text-white py-12">
+    <div class="container mx-auto px-4 text-center">
+      <h2 class="text-3xl md:text-4xl font-bold mb-4">探索您的理想客房</h2>
+      <p class="text-lg mb-6">便捷预订，舒适体验，尽在悦享酒店</p>
+      <div class="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-4">
+        <div class="flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-4">
+          <div class="flex-1">
+            <label for="heroCheckIn" class="sr-only">入住日期</label>
+            <input type="date" id="heroCheckIn" class="w-full px-4 py-2 text-gray-700 rounded-md border focus:outline-none focus:ring-2 focus:ring-secondary" placeholder="入住日期" required>
+          </div>
+          <div class="flex-1">
+            <label for="heroCheckOut" class="sr-only">退房日期</label>
+            <input type="date" id="heroCheckOut" class="w-full px-4 py-2 text-gray-700 rounded-md border focus:outline-none focus:ring-2 focus:ring-secondary" placeholder="退房日期" required>
+          </div>
+          <button id="heroSearchBtn" class="bg-secondary hover:bg-secondary/90 text-white font-bold px-6 py-2 rounded-md transition">
+            <i class="fas fa-search mr-1"></i>查询空房
+          </button>
+        </div>
+        <div id="heroDateDisplay" class="hidden mt-3 text-sm text-gray-600">
+          已选日期：<span id="heroCheckInDisplay" class="font-medium"></span> - <span id="heroCheckOutDisplay" class="font-medium"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="rooms" class="container mx-auto px-4 py-12">
+    <h2 class="text-3xl font-bold text-center mb-10 text-dark">精选客房</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div class="bg-white rounded-lg shadow-xl overflow-hidden card-shadow">
+        <img src="images/双人1.jpg" alt="标准双人间" class="w-full h-48 object-cover">
+        <div class="p-6">
+          <h3 class="text-xl font-bold text-primary mb-2">标准双人间</h3>
+          <p class="text-gray-600 mb-4">舒适简约，经济之选，适合短期出差或旅行。</p>
+          <div class="flex justify-between items-center mb-4">
+            <span class="text-2xl font-bold text-red-600">¥399 <span class="text-sm text-gray-500 line-through">¥449</span></span>
+            <span class="text-sm text-gray-700">剩余: <span id="standardRemaining" class="font-bold text-primary">20</span> 间</span>
+          </div>
+          <div class="flex space-x-3">
+            <button class="flex-1 bg-primary hover:bg-primary/90 text-white py-2 rounded-md transition book-room-btn" data-room="standard">
+              立即预订
+            </button>
+            <button class="flex-1 bg-gray-200 hover:bg-gray-300 text-dark py-2 rounded-md transition view-room-btn" data-room="standard">
+              查看详情
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white rounded-lg shadow-xl overflow-hidden card-shadow">
+        <img src="images/豪华1.jpg" alt="豪华套房" class="w-full h-48 object-cover">
+        <div class="p-6">
+          <h3 class="text-xl font-bold text-primary mb-2">豪华套房</h3>
+          <p class="text-gray-600 mb-4">奢华宽敞，独立客厅，尊享行政酒廊待遇。</p>
+          <div class="flex justify-between items-center mb-4">
+            <span class="text-2xl font-bold text-red-600">¥899 <span class="text-sm text-gray-500 line-through">¥1129</span></span>
+            <span class="text-sm text-gray-700">剩余: <span id="deluxeRemaining" class="font-bold text-primary">10</span> 间</span>
+          </div>
+          <div class="flex space-x-3">
+            <button class="flex-1 bg-primary hover:bg-primary/90 text-white py-2 rounded-md transition book-room-btn" data-room="deluxe">
+              立即预订
+            </button>
+            <button class="flex-1 bg-gray-200 hover:bg-gray-300 text-dark py-2 rounded-md transition view-room-btn" data-room="deluxe">
+              查看详情
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white rounded-lg shadow-xl overflow-hidden card-shadow">
+        <img src="images/行政1.jpg" alt="行政单间" class="w-full h-48 object-cover">
+        <div class="p-6">
+          <h3 class="text-xl font-bold text-primary mb-2">行政单间</h3>
+          <p class="text-gray-600 mb-4">高层景观，商务办公设施齐全，行政礼遇。</p>
+          <div class="flex justify-between items-center mb-4">
+            <span class="text-2xl font-bold text-red-600">¥599 <span class="text-sm text-gray-500 line-through">¥700</span></span>
+            <span class="text-sm text-gray-700">剩余: <span id="executiveRemaining" class="font-bold text-primary">15</span> 间</span>
+          </div>
+          <div class="flex space-x-3">
+            <button class="flex-1 bg-primary hover:bg-primary/90 text-white py-2 rounded-md transition book-room-btn" data-room="executive">
+              立即预订
+            </button>
+            <button class="flex-1 bg-gray-200 hover:bg-gray-300 text-dark py-2 rounded-md transition view-room-btn" data-room="executive">
+              查看详情
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="booking" class="bg-light py-12">
+    <div class="container mx-auto px-4">
+      <h2 class="text-3xl font-bold text-center mb-10 text-dark">快速预订</h2>
+      <div class="max-w-3xl mx-auto bg-white p-6 md:p-10 rounded-lg shadow-xl card-shadow">
+        <form id="bookingForm" class="space-y-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label for="bookingRoomType" class="block text-gray-700 font-medium mb-1">房型 <span class="text-red-500">*</span></label>
+              <select id="bookingRoomType" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary" required>
+                <option value="" disabled selected>请选择房型</option>
+                <option value="standard">标准双人间</option>
+                <option value="deluxe">豪华套房</option>
+                <option value="executive">行政单间</option>
+              </select>
+            </div>
+            <div>
+              <label for="bookingVipLevel" class="block text-gray-700 font-medium mb-1">VIP等级 (影响折扣)</label>
+              <select id="bookingVipLevel" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary">
+                <option value="none">非VIP (无折扣)</option>
+                <option value="vip1">VIP 1级 (9折)</option>
+                <option value="vip2">VIP 2级 (8.5折)</option>
+                <option value="vip3">VIP 3级 (8折)</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label for="bookingCheckIn" class="block text-gray-700 font-medium mb-1">入住日期 <span class="text-red-500">*</span></label>
+              <input type="date" id="bookingCheckIn" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary" required>
+            </div>
+            <div>
+              <label for="bookingCheckOut" class="block text-gray-700 font-medium mb-1">退房日期 <span class="text-red-500">*</span></label>
+              <input type="date" id="bookingCheckOut" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary" required>
+            </div>
+          </div>
+          <div id="bookingDateDisplay" class="hidden text-center text-sm text-gray-600 py-2 rounded-md bg-gray-100">
+            已选日期：<span id="bookingCheckInDisplay" class="font-medium"></span> - <span id="bookingCheckOutDisplay" class="font-medium"></span>
+          </div>
+          
+          <h3 class="text-lg font-semibold pt-4 border-t border-gray-200">联系信息</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label for="bookingName" class="block text-gray-700 font-medium mb-1">联系人姓名 <span class="text-red-500">*</span></label>
+              <input type="text" id="bookingName" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary" required placeholder="入住人姓名">
+            </div>
+            <div>
+              <label for="bookingPhone" class="block text-gray-700 font-medium mb-1">手机号码 <span class="text-red-500">*</span></label>
+              <input type="tel" id="bookingPhone" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary" required placeholder="用于接收确认短信">
+            </div>
+          </div>
+          
+          <button type="button" id="submitBooking" class="w-full bg-secondary hover:bg-secondary/90 text-white font-bold py-3 rounded-md transition mt-6">
+            确认并提交预订
+          </button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <section id="vip" class="container mx-auto px-4 py-12">
+    <h2 class="text-3xl font-bold text-center mb-10 text-dark">VIP尊享礼遇</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+        <div class="bg-white p-6 rounded-lg shadow-lg card-shadow border-t-4 border-primary">
+            <i class="fas fa-star text-4xl text-primary mb-3"></i>
+            <h3 class="text-xl font-bold mb-2">VIP 1级</h3>
+            <p class="text-gray-600">享受客房9折优惠，延迟退房至13:00。</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-lg card-shadow border-t-4 border-secondary">
+            <i class="fas fa-trophy text-4xl text-secondary mb-3"></i>
+            <h3 class="text-xl font-bold mb-2">VIP 2级</h3>
+            <p class="text-gray-600">客房8.5折，免费早餐，延迟退房至14:00。</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-lg card-shadow border-t-4 border-red-500">
+            <i class="fas fa-gem text-4xl text-red-500 mb-3"></i>
+            <h3 class="text-xl font-bold mb-2">VIP 3级</h3>
+            <p class="text-gray-600">客房8折，免费双早，房型升级，延迟退房至16:00。</p>
+        </div>
+    </div>
+    
+    <div class="text-center mt-8">
+        <button id="viewMorePrivilegeBtn" class="bg-primary hover:bg-primary/90 text-white font-bold px-6 py-3 rounded-md transition">
+            <i class="fas fa-crown mr-2"></i>查看所有礼遇详情
+        </button>
+    </div>
+</section>
+
+  <section id="adminSection" class="container mx-auto px-4 py-8 hidden">
+    <h2 class="text-3xl font-bold mb-6 text-dark">管理员仪表盘</h2>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow-lg card-shadow">
+            <h3 class="text-xl font-semibold mb-4 text-primary">客房空置趋势</h3>
+            <div style="height: 300px;">
+                <canvas id="roomOccupancyChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="bg-white p-6 rounded-lg shadow-lg card-shadow">
+            <h3 class="text-xl font-semibold mb-4 text-primary">客房数量管理</h3>
+            <div class="space-y-4">
+                <div id="roomManagementInputs">
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="font-medium text-gray-700">标准双人间总数</label>
+                        <div class="flex items-center space-x-2">
+                            <button id="decStandard" class="bg-gray-200 hover:bg-gray-300 w-8 h-8 rounded-full text-lg">-</button>
+                            <input type="number" id="standardRooms" value="20" min="0" class="w-16 text-center border rounded-md">
+                            <button id="incStandard" class="bg-gray-200 hover:bg-gray-300 w-8 h-8 rounded-full text-lg">+</button>
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-1">空置: <span id="adminStandardRemaining" class="font-semibold">20/20</span></p>
+                    <div class="h-2 w-full bg-gray-200 rounded-full mb-4">
+                        <div class="h-2 rounded-full bg-green-500" style="width: 100%;"></div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="font-medium text-gray-700">豪华套房总数</label>
+                        <div class="flex items-center space-x-2">
+                            <button id="decDeluxe" class="bg-gray-200 hover:bg-gray-300 w-8 h-8 rounded-full text-lg">-</button>
+                            <input type="number" id="deluxeRooms" value="10" min="0" class="w-16 text-center border rounded-md">
+                            <button id="incDeluxe" class="bg-gray-200 hover:bg-gray-300 w-8 h-8 rounded-full text-lg">+</button>
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-1">空置: <span id="adminDeluxeRemaining" class="font-semibold">10/10</span></p>
+                    <div class="h-2 w-full bg-gray-200 rounded-full mb-4">
+                        <div class="h-2 rounded-full bg-green-500" style="width: 100%;"></div>
+                    </div>
+
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="font-medium text-gray-700">行政单间总数</label>
+                        <div class="flex items-center space-x-2">
+                            <button id="decExecutive" class="bg-gray-200 hover:bg-gray-300 w-8 h-8 rounded-full text-lg">-</button>
+                            <input type="number" id="executiveRooms" value="15" min="0" class="w-16 text-center border rounded-md">
+                            <button id="incExecutive" class="bg-gray-200 hover:bg-gray-300 w-8 h-8 rounded-full text-lg">+</button>
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-1">空置: <span id="adminExecutiveRemaining" class="font-semibold">15/15</span></p>
+                    <div class="h-2 w-full bg-gray-200 rounded-full mb-4">
+                        <div class="h-2 rounded-full bg-green-500" style="width: 100%;"></div>
+                    </div>
+                </div>
+
+                <button id="saveRoomCounts" class="w-full bg-primary hover:bg-primary/90 text-white py-2 rounded-md transition">
+                    保存房间总数
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white p-6 rounded-lg shadow-lg card-shadow">
+    <div class="flex justify-between items-center mb-4">
+        <h3 class="text-xl font-semibold text-primary">订单管理</h3>
+        <div class="flex items-center space-x-4">
+            <!-- 添加搜索框 -->
+            <div class="relative">
+                <input type="text" id="orderSearchInput" 
+                       placeholder="搜索用户名、联系人、手机号..." 
+                       class="px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary w-64">
+                <button id="orderSearchBtn" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-primary">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+            <button id="viewAllOrders" class="text-sm text-primary hover:text-primary/80 transition">
+                <i class="fas fa-sync-alt mr-1"></i>刷新订单
+            </button>
+        </div>
+    </div>
+    
+    <!-- 添加搜索结果提示 -->
+    <div id="searchResultsInfo" class="mb-4 hidden">
+        <p class="text-sm text-gray-600">
+            搜索结果: <span id="searchTermDisplay" class="font-medium"></span>
+            <button id="clearSearch" class="ml-2 text-primary hover:text-primary/80 text-sm">
+                <i class="fas fa-times mr-1"></i>清除搜索
+            </button>
+        </p>
+    </div>
+    
+    <div class="tabs flex mb-4 border-b border-gray-200">
+        <button id="adminOngoingListTab" class="flex-1 py-2 font-medium border-b-2 tab-button border-primary text-primary transition duration-300">
+            正在进行中的订单
+        </button>
+        <button id="adminHistoryListTab" class="flex-1 py-2 font-medium border-b-2 tab-button border-transparent text-gray-500 hover:text-primary transition duration-300">
+            历史订单 (完成/取消)
+        </button>
+    </div>
+
+    <div id="adminOrdersContent">
+        <div id="adminOngoingOrders">
+            <p class="text-sm text-gray-500 mb-4">包含待确认和已确认/入住中的订单（可操作：确认入住、办理退房、取消）。</p>
+            <div id="adminOngoingOrdersList" class="space-y-4">
+                <!-- 动态内容 -->
+            </div>
+        </div>
+
+        <div id="adminHistoryOrders" class="hidden">
+            <p class="text-sm text-gray-500 mb-4">包含已完成退房和已取消的订单记录（不可操作）。</p>
+            <div id="adminHistoryOrdersList" class="space-y-4">
+                <!-- 动态内容 -->
+            </div>
+        </div>
+    </div>
+  </div>
+  </section>
+  
+  <footer class="bg-dark text-white py-6 mt-12">
+    <div class="container mx-auto px-4 text-center text-sm">
+      &copy; 2025 悦享酒店管理系统. 保留所有权利.
+    </div>
+  </footer>
+
+  <div id="privilegeModal" class="fixed inset-0 z-50 flex items-center justify-center hidden modal-overlay">
+    <div class="bg-white rounded-lg max-w-lg w-full p-6 text-dark">
+      <div class="flex justify-between items-center mb-4 border-b pb-2">
+        <h3 class="text-xl font-bold text-primary">VIP 尊享礼遇详情</h3>
+        <button id="closePrivilegeModal" class="text-gray-500 hover:text-gray-700">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+      <ul class="space-y-3 text-left">
+        <li class="font-bold text-lg border-b pb-1">VIP 1级</li>
+        <li class="ml-4 list-disc">客房预订享受9折优惠</li>
+        <li class="ml-4 list-disc">免费延迟退房至13:00</li>
+        
+        <li class="font-bold text-lg pt-3 border-b pb-1">VIP 2级</li>
+        <li class="ml-4 list-disc">客房预订享受8.5折优惠</li>
+        <li class="ml-4 list-disc">每日免费双份早餐</li>
+        <li class="ml-4 list-disc">免费延迟退房至14:00</li>
+
+        <li class="font-bold text-lg pt-3 border-b pb-1">VIP 3级 (最高级)</li>
+        <li class="ml-4 list-disc">客房预订享受8折优惠</li>
+        <li class="ml-4 list-disc">每日免费双份早餐及欢迎饮品</li>
+        <li class="ml-4 list-disc">视客房情况，免费房型升级一次</li>
+        <li class="ml-4 list-disc">免费延迟退房至16:00</li>
+        <li class="ml-4 list-disc">免费使用行政酒廊</li>
+      </ul>
+    </div>
+  </div>
+
+  <div id="ordersModal" class="fixed inset-0 z-50 flex items-center justify-center hidden modal-overlay">
+    <div class="bg-white rounded-lg max-w-2xl w-full p-6 text-dark overflow-y-auto max-h-[90vh]">
+      <div class="flex justify-between items-center mb-4 border-b pb-2">
+        <h3 class="text-xl font-bold text-primary">我的订单</h3>
+        <button id="closeOrdersModal" class="text-gray-500 hover:text-gray-700">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+      <div id="ordersList" class="space-y-4">
+        <p class="text-gray-500 text-center py-4">正在加载订单...</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="roomModal" class="fixed inset-0 z-50 flex items-center justify-center hidden modal-overlay">
+    <div class="bg-white rounded-lg max-w-3xl w-full p-6 text-dark overflow-y-auto max-h-[90vh]">
+      <div class="flex justify-between items-center mb-4">
+        <h3 id="modalRoomTitle" class="text-2xl font-bold text-primary">客房详情</h3>
+        <button id="closeModal" class="text-gray-500 hover:text-gray-700">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-6">
+        <div class="md:col-span-3">
+          <img id="detailMainImg" src="" alt="客房主图" class="w-full h-64 object-cover rounded-lg mb-3">
+          <div id="detailThumbnails" class="flex space-x-2 overflow-x-auto">
+            <img data-room="standard" data-img="images\双人1.jpg" src="images\双人1.jpg" alt="缩略图" class="w-16 h-16 object-cover rounded-md cursor-pointer border-2 border-primary hidden">
+            <img data-room="standard" data-img="images\双人2.jpg" src="images\双人2.jpg" alt="缩略图" class="w-16 h-16 object-cover rounded-md cursor-pointer hidden">
+            <img data-room="standard" data-img="images\双人3.jpg" src="images\双人3.jpg" alt="缩略图" class="w-16 h-16 object-cover rounded-md cursor-pointer hidden">
+            <img data-room="standard" data-img="images\双人4.jpg" src="images\双人4.jpg" alt="缩略图" class="w-16 h-16 object-cover rounded-md cursor-pointer hidden">
+            <img data-room="deluxe" data-img="images\豪华1.jpg" src="images\豪华1.jpg" alt="缩略图" class="w-16 h-16 object-cover rounded-md cursor-pointer hidden">
+            <img data-room="deluxe" data-img="images\豪华2.jpg" src="images\豪华2.jpg" alt="缩略图" class="w-16 h-16 object-cover rounded-md cursor-pointer hidden">
+            <img data-room="deluxe" data-img="images\豪华3.jpg" src="images\豪华3.jpg" alt="缩略图" class="w-16 h-16 object-cover rounded-md cursor-pointer hidden">
+            <img data-room="deluxe" data-img="images\豪华4.jpg" src="images\豪华4.jpg" alt="缩略图" class="w-16 h-16 object-cover rounded-md cursor-pointer hidden">
+            <img data-room="executive" data-img="images\行政1.jpg" src="images\行政1.jpg" alt="缩略图" class="w-16 h-16 object-cover rounded-md cursor-pointer hidden">
+            <img data-room="executive" data-img="images\行政2.jpg" src="images\行政2.jpg" alt="缩略图" class="w-16 h-16 object-cover rounded-md cursor-pointer hidden">
+            <img data-room="executive" data-img="images\行政3.jpg" src="images\行政3.jpg" alt="缩略图" class="w-16 h-16 object-cover rounded-md cursor-pointer hidden">
+            <img data-room="executive" data-img="images\行政4.jpg" src="images\行政4.jpg" alt="缩略图" class="w-16 h-16 object-cover rounded-md cursor-pointer hidden">
+          </div>
+        </div>
+        <div class="md:col-span-2 room-details">
+          <h4 class="text-lg font-semibold mb-2">价格</h4>
+          <p class="text-3xl font-bold text-red-600 mb-4">¥399 /晚 <span class="text-base text-gray-500 line-through">¥449</span></p>
+          <h4 class="text-lg font-semibold mb-2 border-t pt-4">房间信息</h4>
+          <ul id="detailRoomInfo" class="space-y-2 text-sm">
+            <!-- 动态内容 -->
+          </ul>
+          <button class="w-full bg-primary hover:bg-primary/90 text-white py-3 rounded-md transition mt-6 book-room-btn" data-room="">
+            立即预订该房型
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="bookingSuccessModal" class="fixed inset-0 z-50 flex items-center justify-center hidden modal-overlay">
+    <div class="bg-white rounded-lg max-w-sm w-full p-6 text-dark text-center">
+        <div class="mb-4">
+            <i class="fas fa-check-circle text-6xl text-green-500 mb-3"></i>
+            <h3 class="text-2xl font-bold text-primary">预订成功！</h3>
+        </div>
+        <p class="text-gray-600 mb-4" id="successModalMessage">您的订单已提交，等待管理员确认入住。</p>
+        <div class="text-left bg-gray-50 p-3 rounded-md mb-6">
+            <p class="text-sm font-medium text-gray-700">订单详情：</p>
+            <p class="text-md font-bold text-dark" id="modalRoomInfo"></p>
+            <p class="text-md font-bold text-red-600" id="modalTotalPrice"></p>
+        </div>
+        <button id="closeBookingSuccessModal" class="w-full bg-primary hover:bg-primary/90 text-white py-2 rounded-md transition">
+            <i class="fas fa-list-alt mr-1"></i>查看我的订单
+        </button>
+    </div>
+  </div>
+
+  <script src="js/constants_utils.js"></script>
+  <script src="js/state_updates.js"></script>
+  <script src="js/handlers_and_menus.js"></script>
+  <script src="js/admin_and_render.js"></script>
+  <script src="js/forms_logic.js"></script>
+  <script src="js/others.js"></script>
+</body>
+</html>
